@@ -28,18 +28,12 @@ suppressMessages(library(ggGate))
 #> Warning: package 'shiny' was built under R version 4.1.2
 ```
 
-#### (2) Create ggplot2 object
+#### (2) Using ggGate
 
 ``` r
+#create ggplot2 object
 p <- ggplot(iris, aes(Sepal.Length, Sepal.Width)) + geom_point()
-p
-```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
-
-#### (3) Using ggGate
-
-``` r
 ggGate(p, write_data_to = "df_new", write_gate_to = "df_gate")
 ```
 
@@ -53,7 +47,7 @@ ggGate(p, write_data_to = "df_new", write_gate_to = "df_gate")
 
 <img src="plots/ggGate_example.png" width="100%" />
 
-#### (4) Interpreting outputs
+#### (3) Interpreting outputs
 
 New columns corresponding to each gate are added to the data.frame
 underlying the ggplot2 object.
