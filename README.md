@@ -59,7 +59,7 @@ New columns corresponding to each gate are added to the data.frame
 underlying the ggplot2 object.
 
 The new columns store boolean values indicating if the data points
-(rows) fall inside the gate.
+(rows) fall inside the respective gates.
 
 ``` r
 colnames(iris)

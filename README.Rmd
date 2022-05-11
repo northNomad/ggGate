@@ -69,7 +69,7 @@ knitr::include_graphics("plots/ggGate_example.png")
 #### (4) Interpreting outputs
 New columns corresponding to each gate are added to the data.frame underlying the ggplot2 object.
 
-The new columns store boolean values indicating if the data points (rows) fall inside the gate.
+The new columns store boolean values indicating if the data points (rows) fall inside the respective gates.
 ```{r}
 colnames(iris)
 colnames(df_new)
