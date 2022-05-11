@@ -1,0 +1,16 @@
+Package: ggGate
+Type: Package
+Title: Create gates on ggplot2 object by point-clicking
+Version: 0.1.0
+Author: Authors@R: person("Alex_CH", "Liu", email = "alexch.liu@mail.utoronto.ca", role = c("aut", "cre"))
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+Depends:
+  magrittr (>= 2.0.1),
+  ggplot2 (>= 3.3.5),
+  shiny (>= 1.7.1),
+  tibble (>= 3.1.6)
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
