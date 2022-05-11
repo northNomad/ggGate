@@ -7,6 +7,7 @@ Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 Depends:
+  dplyr (>= 1.0.7),
   magrittr (>= 2.0.1),
   ggplot2 (>= 3.3.5),
   shiny (>= 1.7.1),
