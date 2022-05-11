@@ -26,7 +26,6 @@ devtools::install_github("northNomad/ggGate")
 ``` r
 suppressMessages(library(ggGate))
 #> Warning: package 'shiny' was built under R version 4.1.2
-## basic example code
 ```
 
 #### (2) Create ggplot2 object

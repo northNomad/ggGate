@@ -15,6 +15,8 @@ knitr::opts_chunk$set(
 library(tidyverse)
 df_gate <- readRDS("df_gate.rds")
 df_new <- readRDS("df_new.rds")
+
+iris
 ```
 
 # ggGate
@@ -38,7 +40,6 @@ devtools::install_github("northNomad/ggGate")
 #### (1) Load package
 ```{r example, message=TRUE, warning=TRUE}
 suppressMessages(library(ggGate))
-## basic example code
 ```
 
 #### (2) Create ggplot2 object
