@@ -2,11 +2,11 @@
 #'
 #' Create gates by clicking on ggplot2.
 #' A single click adds coordinates to the active polygon gate.
-#' A double click draws the active polygon gate, and appends the raw ggplot2 data with new columns.
-#' The new columns are named after the gates and contain binary values of whether each row falls into the gate.
+#' A double click draws the active polygon gate, and annotates the raw ggplot2 data with new columns.
 #'
 #' @param p ggplot2 object.
-#' @param write_gate_to String. This is the variable name of the \code{data.frame} that stores the gating coordinates.
+#' @param write_data_to String. Sets the variable name of the \code{data.frame} that stores the annotated data underlying the ggplot2 object.
+#' @param write_gate_to String. Sets the variable name of the \code{data.frame} that stores the gating coordinates.
 ggGate <- function(p,
                    write_data_to = "df_new",
                    write_gate_to = "df_gate") {
