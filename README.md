@@ -6,8 +6,8 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-ggGate enables interactive gating (ie., selection) of data points
-underlying a ggplot2 object.
+ggGate is a one-function-package enabling point-and-click gating on a
+ggplot2 object through shiny
 
 ## Installation
 
