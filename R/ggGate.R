@@ -12,6 +12,7 @@ ggGate <- function(p,
                    write_gate_to = "df_gate") {
   #
   require(shiny)
+
   shinyApp(
 
     ######################
