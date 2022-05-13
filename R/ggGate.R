@@ -12,8 +12,8 @@ ggGate <- function(p,
                    write_gate_to = "df_gate") {
   #
   require(shiny)
-
   shinyApp(
+
     ######################
     ui = basicPage(
 
@@ -21,6 +21,7 @@ ggGate <- function(p,
       textInput("name_polygon", "Name of gate", "cluster 1"),
 
       #CLICK ON PLOTS
+
       plotOutput("plot",
                  click = "plot_click",
                  dblclick = "plot_dblclick"),
@@ -46,11 +47,13 @@ ggGate <- function(p,
       raw <- reactiveVal(p$data)
 
       #RENDERS IMPORTED GGPLOT2 OBJECT
+      p_raw <- p
       p <- reactiveVal(p)
       output$plot <- renderPlot({p()})
 
       #CREATE AND UPDATES GATE COORDINATES
       df <- reactiveVal(NULL)
+
       observeEvent(input$plot_click, {
         if (is.null(df())) {
           df(tibble(x = input$plot_click$x,
@@ -64,15 +67,32 @@ ggGate <- function(p,
                        group = input$name_polygon)
           )
         }
+        ##add point to each click
+          p(p() +
+            geom_path(data = df(), aes(x, y, color = group), show.legend = FALSE) +
+            geom_point(data = df(), aes(x, y, color = group), shape = 20, show.legend = FALSE)
+            )
       })
 
       #DOUBLECLICK -
       observeEvent(input$plot_dblclick, {
-        ##ADDS POLYGON
+        # add first click coord to last row
+        df2 <- df()
+        df2 <- df2 %>%
+          mutate(group_dup = group) %>%
+          dplyr::group_by(group_dup) %>%
+          dplyr::group_map(function(x, y){
+              x %>% add_row(., .[1, ])
+            }) %>%
+          do.call(rbind, .)
+
+
+        #ADDS POLYGON
         p(p() +
             geom_polygon(data = df(),
                          aes(x, y, fill = group),
-                         alpha = .2)
+                         alpha = .2) +
+            geom_path(data = df2, aes(x, y, color = group), show.legend = FALSE)
         )
 
         ##ANNOTATES RAW DF
