@@ -11,7 +11,7 @@ ggplot2 object through shiny
 
 ## Installation
 
-You can install the development version of ggGate from
+You can install ggGate from
 [GitHub](https://github.com/) with:
 
 ``` r
