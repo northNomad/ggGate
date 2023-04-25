@@ -6,7 +6,7 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-ggGate is a one-function-package enabling point-and-click gating on a
+ggGate is a one-function-package that enables point-and-click gating on a
 ggplot2 object through shiny
 
 ## Installation
