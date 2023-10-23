@@ -4,8 +4,8 @@ Title: Create gates on ggplot2 object by point-clicking
 Version: 0.1.0
 Author: Authors@R: person("Alex_CH", "Liu", email = "alexch.liu@mail.utoronto.ca", role = c("aut", "cre"))
 Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: ggGate is a one-function package that enables point-and-click gating of ggplot objects through shiny. 
+    Its intended use is for data exploration and outlier investigation.
 Depends:
   dplyr (>= 1.0.7),
   magrittr (>= 2.0.1),
