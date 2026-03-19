@@ -8,15 +8,18 @@
 #' @param write_data_to String. Sets the variable name of the \code{data.frame} that stores the annotated data underlying the ggplot2 object.
 #' @param write_gate_to String. Sets the variable name of the \code{data.frame} that stores the gating coordinates.
 ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
+  require(shiny)
 
-  used_cols <- unique(unlist(lapply(p$mapping, rlang::as_label)))
-  for (layer in p$layers) {
-    if (length(layer$mapping) > 0) {
-      used_cols <- unique(c(used_cols, unlist(lapply(layer$mapping, rlang::as_label))))
+  # Pull out the original color scale and remove it from p
+  color_scale <- NULL
+  for (s in p$scales$scales) {
+    if ("colour" %in% s$aesthetics) {
+      color_scale <- s
+      break
     }
   }
-  used_cols <- used_cols[used_cols %in% names(p$data)]
-  p$data <- p$data[, used_cols, drop = FALSE]
+  # Remove all color scales from p
+  p$scales$scales <- Filter(function(s) !("colour" %in% s$aesthetics), p$scales$scales)
 
   shinyApp(
     ui = basicPage(
@@ -27,8 +30,8 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
       tableOutput("df_coordinate")
     ),
     server = function(input, output) {
-      point.x <- p$data[[rlang::as_label(p$mapping$x)]]
-      point.y <- p$data[[rlang::as_label(p$mapping$y)]]
+      point.x <- dplyr::select(p$data, rlang::as_label(p$mapping$x)) %>% .[, 1]
+      point.y <- dplyr::select(p$data, rlang::as_label(p$mapping$y)) %>% .[, 1]
 
       raw <- reactiveVal(p$data)
       df  <- reactiveVal(NULL)
@@ -37,19 +40,24 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
         current_df <- df()
         plt <- p
 
+        # Re-add the original color scale scoped only to the base layer data
+        if (!is.null(color_scale)) {
+          plt <- plt + color_scale
+        }
+
         if (!is.null(current_df)) {
           plt <- plt +
             ggplot2::geom_path(
               data = current_df,
               mapping = ggplot2::aes(x = x, y = y),
-              color = "red",      # fixed, no aes mapping
+              color = "red",
               linewidth = 0.8,
               inherit.aes = FALSE
             ) +
             ggplot2::geom_point(
               data = current_df,
               mapping = ggplot2::aes(x = x, y = y),
-              color = "red",      # fixed, no aes mapping
+              color = "red",
               shape = 20,
               size = 2,
               inherit.aes = FALSE
@@ -57,8 +65,8 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
             ggplot2::geom_polygon(
               data = current_df,
               mapping = ggplot2::aes(x = x, y = y),
-              color = "red",      # fixed, no aes mapping
-              fill = "red",       # fixed, no aes mapping
+              color = "red",
+              fill = "red",
               alpha = 0.2,
               inherit.aes = FALSE
             )
