@@ -9,14 +9,16 @@
 #' @param write_gate_to String. Sets the variable name of the \code{data.frame} that stores the gating coordinates.
 ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
   
-  # Extract the original color scale from p to re-add it after new layers
-  original_color_scale <- NULL
-  for (s in p$scales$scales) {
-    if ("colour" %in% s$aesthetics) {
-      original_color_scale <- s
-      break
+  # Keep only the columns actually used in the plot mappings
+  used_cols <- unique(unlist(lapply(p$mapping, rlang::as_label)))
+  # Also grab columns used in layers
+  for (layer in p$layers) {
+    if (length(layer$mapping) > 0) {
+      used_cols <- unique(c(used_cols, unlist(lapply(layer$mapping, rlang::as_label))))
     }
   }
+  used_cols <- used_cols[used_cols %in% names(p$data)]
+  p$data <- p$data[, used_cols, drop = FALSE]
   
   shinyApp(
     ui = basicPage(
@@ -26,14 +28,11 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
       actionButton('save_annotated.raw_to_global', "Save annotated raw data to global environment"),
       tableOutput("df_coordinate")
     ),
-
     server = function(input, output) {
-
-      point.x <- dplyr::select(p$data, rlang::as_label(p$mapping$x)) %>% .[, 1]
-      point.y <- dplyr::select(p$data, rlang::as_label(p$mapping$y)) %>% .[, 1]
+      point.x <- p$data[[rlang::as_label(p$mapping$x)]]
+      point.y <- p$data[[rlang::as_label(p$mapping$y)]]
 
       raw  <- reactiveVal(p$data)
-      p_base <- reactiveVal(p)  # store base plot separately, never modify it
       df   <- reactiveVal(NULL)
 
       gate_colors <- c(
@@ -45,12 +44,9 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
         if (name %in% names(gate_colors)) gate_colors[[name]] else "#000000"
       }
 
-      # Build the display plot fresh each time from base + current df
-      # This avoids layer accumulation conflicts
       built_plot <- reactive({
         current_df <- df()
-        plt <- p_base()
-        
+        plt <- p
         if (!is.null(current_df)) {
           groups <- unique(current_df$group)
           for (g in groups) {
@@ -62,7 +58,7 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
                 mapping = ggplot2::aes(x = x, y = y),
                 color = col,
                 linewidth = 0.8,
-                inherit.aes = FALSE   # <-- KEY: don't inherit color aes from parent
+                inherit.aes = FALSE
               ) +
               ggplot2::geom_point(
                 data = gdf,
@@ -70,7 +66,7 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
                 color = col,
                 shape = 20,
                 size = 2,
-                inherit.aes = FALSE   # <-- KEY
+                inherit.aes = FALSE
               )
           }
         }
@@ -80,26 +76,17 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
       output$plot <- renderPlot({ built_plot() })
 
       observeEvent(input$plot_click, {
-        new_row <- tibble::tibble(
-          x     = input$plot_click$x,
-          y     = input$plot_click$y,
-          group = input$name_polygon
-        )
+        new_row <- tibble::tibble(x = input$plot_click$x, y = input$plot_click$y, group = input$name_polygon)
         df(if (is.null(df())) new_row else dplyr::bind_rows(df(), new_row))
       })
 
       observeEvent(input$plot_dblclick, {
-        current_df <- df()
-        
-        # Close the polygon for the current gate
-        closed <- current_df %>%
+        closed <- df() %>%
           dplyr::group_by(group) %>%
           dplyr::group_map(function(x, y) dplyr::bind_rows(x, x[1, ])) %>%
           do.call(rbind, .)
-        
         df(closed)
 
-        # Annotate raw data
         pol.x    <- dplyr::filter(closed, group == input$name_polygon) %>% .$x
         pol.y    <- dplyr::filter(closed, group == input$name_polygon) %>% .$y
         is.gated <- sp::point.in.polygon(point.x, point.y, pol.x, pol.y)
@@ -111,7 +98,6 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
       observeEvent(input$save_coord_to_global, {
         assign(write_gate_to, df(), envir = .GlobalEnv)
       })
-
       observeEvent(input$save_annotated.raw_to_global, {
         assign(write_data_to, raw(), envir = .GlobalEnv)
       })
