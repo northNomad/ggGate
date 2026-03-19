@@ -8,10 +8,8 @@
 #' @param write_data_to String. Sets the variable name of the \code{data.frame} that stores the annotated data underlying the ggplot2 object.
 #' @param write_gate_to String. Sets the variable name of the \code{data.frame} that stores the gating coordinates.
 ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
-  
-  # Keep only the columns actually used in the plot mappings
+
   used_cols <- unique(unlist(lapply(p$mapping, rlang::as_label)))
-  # Also grab columns used in layers
   for (layer in p$layers) {
     if (length(layer$mapping) > 0) {
       used_cols <- unique(c(used_cols, unlist(lapply(layer$mapping, rlang::as_label))))
@@ -19,7 +17,7 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
   }
   used_cols <- used_cols[used_cols %in% names(p$data)]
   p$data <- p$data[, used_cols, drop = FALSE]
-  
+
   shinyApp(
     ui = basicPage(
       textInput("name_polygon", "Name of gate", "cluster 1"),
@@ -32,43 +30,38 @@ ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
       point.x <- p$data[[rlang::as_label(p$mapping$x)]]
       point.y <- p$data[[rlang::as_label(p$mapping$y)]]
 
-      raw  <- reactiveVal(p$data)
-      df   <- reactiveVal(NULL)
-
-      gate_colors <- c(
-        "cluster 1" = "#E41A1C", "cluster 2" = "#377EB8",
-        "cluster 3" = "#4DAF4A", "cluster 4" = "#984EA3",
-        "cluster 5" = "#FF7F00"
-      )
-      get_color <- function(name) {
-        if (name %in% names(gate_colors)) gate_colors[[name]] else "#000000"
-      }
+      raw <- reactiveVal(p$data)
+      df  <- reactiveVal(NULL)
 
       built_plot <- reactive({
         current_df <- df()
         plt <- p
+
         if (!is.null(current_df)) {
-          groups <- unique(current_df$group)
-          for (g in groups) {
-            col <- get_color(g)
-            gdf <- dplyr::filter(current_df, group == g)
-            plt <- plt +
-              ggplot2::geom_path(
-                data = gdf,
-                mapping = ggplot2::aes(x = x, y = y),
-                color = col,
-                linewidth = 0.8,
-                inherit.aes = FALSE
-              ) +
-              ggplot2::geom_point(
-                data = gdf,
-                mapping = ggplot2::aes(x = x, y = y),
-                color = col,
-                shape = 20,
-                size = 2,
-                inherit.aes = FALSE
-              )
-          }
+          plt <- plt +
+            ggplot2::geom_path(
+              data = current_df,
+              mapping = ggplot2::aes(x = x, y = y),
+              color = "red",      # fixed, no aes mapping
+              linewidth = 0.8,
+              inherit.aes = FALSE
+            ) +
+            ggplot2::geom_point(
+              data = current_df,
+              mapping = ggplot2::aes(x = x, y = y),
+              color = "red",      # fixed, no aes mapping
+              shape = 20,
+              size = 2,
+              inherit.aes = FALSE
+            ) +
+            ggplot2::geom_polygon(
+              data = current_df,
+              mapping = ggplot2::aes(x = x, y = y),
+              color = "red",      # fixed, no aes mapping
+              fill = "red",       # fixed, no aes mapping
+              alpha = 0.2,
+              inherit.aes = FALSE
+            )
         }
         plt
       })
