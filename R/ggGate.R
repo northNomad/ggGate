@@ -7,101 +7,119 @@
 #' @param p ggplot2 object.
 #' @param write_data_to String. Sets the variable name of the \code{data.frame} that stores the annotated data underlying the ggplot2 object.
 #' @param write_gate_to String. Sets the variable name of the \code{data.frame} that stores the gating coordinates.
-ggGate <- function(p, write_data_to = "df_new", write_gate_to = "df_gate") {
+ggGate <- function(p,
+                   write_data_to = "df_new",
+                   write_gate_to = "df_gate") {
+  #
   require(shiny)
 
-  # Pull out the original color scale and remove it from p
-  color_scale <- NULL
-  for (s in p$scales$scales) {
-    if ("colour" %in% s$aesthetics) {
-      color_scale <- s
-      break
-    }
-  }
-  # Remove all color scales from p
-  p$scales$scales <- Filter(function(s) !("colour" %in% s$aesthetics), p$scales$scales)
-
   shinyApp(
+
+    ######################
     ui = basicPage(
+
+      #NAME GATES
       textInput("name_polygon", "Name of gate", "cluster 1"),
-      plotOutput("plot", click = "plot_click", dblclick = "plot_dblclick"),
+
+      #CLICK ON PLOTS
+
+      plotOutput("plot",
+                 click = "plot_click",
+                 dblclick = "plot_dblclick"),
+
+      #SAVE COORDINATES
       actionButton('save_coord_to_global', "Save coordinates to global environment"),
+
+      #SAVE APPENDED RAW DATA
       actionButton('save_annotated.raw_to_global', "Save annotated raw data to global environment"),
+
+      #DISPLAYS GATE COORDINATES
       tableOutput("df_coordinate")
+
+
     ),
+    ####################
     server = function(input, output) {
-      point.x <- dplyr::select(p$data, rlang::as_label(p$mapping$x)) %>% .[, 1]
-      point.y <- dplyr::select(p$data, rlang::as_label(p$mapping$y)) %>% .[, 1]
+      #EXTRACT X, Y COLUMNS IN PLOT
+      point.x <- dplyr::select(p$data, as_label(p$mapping$x)) %>% .[, 1]
+      point.y <- dplyr::select(p$data, as_label(p$mapping$y)) %>% .[, 1]
 
+      #MAKE RAW DATA REACTIVE
       raw <- reactiveVal(p$data)
-      df  <- reactiveVal(NULL)
 
-      built_plot <- reactive({
-        current_df <- df()
-        plt <- p
+      #RENDERS IMPORTED GGPLOT2 OBJECT
+      p_raw <- p
+      p <- reactiveVal(p)
+      output$plot <- renderPlot({p()})
 
-        # Re-add the original color scale scoped only to the base layer data
-        if (!is.null(color_scale)) {
-          plt <- plt + color_scale
-        }
-
-        if (!is.null(current_df)) {
-          plt <- plt +
-            ggplot2::geom_path(
-              data = current_df,
-              mapping = ggplot2::aes(x = x, y = y),
-              color = "red",
-              linewidth = 0.8,
-              inherit.aes = FALSE
-            ) +
-            ggplot2::geom_point(
-              data = current_df,
-              mapping = ggplot2::aes(x = x, y = y),
-              color = "red",
-              shape = 20,
-              size = 2,
-              inherit.aes = FALSE
-            ) +
-            ggplot2::geom_polygon(
-              data = current_df,
-              mapping = ggplot2::aes(x = x, y = y),
-              color = "red",
-              fill = "red",
-              alpha = 0.2,
-              inherit.aes = FALSE
-            )
-        }
-        plt
-      })
-
-      output$plot <- renderPlot({ built_plot() })
+      #CREATE AND UPDATES GATE COORDINATES
+      df <- reactiveVal(NULL)
 
       observeEvent(input$plot_click, {
-        new_row <- tibble::tibble(x = input$plot_click$x, y = input$plot_click$y, group = input$name_polygon)
-        df(if (is.null(df())) new_row else dplyr::bind_rows(df(), new_row))
+        if (is.null(df())) {
+          df(tibble(x = input$plot_click$x,
+                    y = input$plot_click$y,
+                    group = input$name_polygon)
+          )
+        } else {
+          df(df() %>%
+               add_row(x = input$plot_click$x,
+                       y = input$plot_click$y,
+                       group = input$name_polygon)
+          )
+        }
+        ##add point to each click
+          p(p() +
+            geom_path(data = df(), aes(x, y, color = group), show.legend = FALSE) +
+            geom_point(data = df(), aes(x, y, color = group), shape = 20, show.legend = FALSE)
+            )
       })
 
+      #DOUBLECLICK -
       observeEvent(input$plot_dblclick, {
-        closed <- df() %>%
-          dplyr::group_by(group) %>%
-          dplyr::group_map(function(x, y) dplyr::bind_rows(x, x[1, ])) %>%
+        # add first click coord to last row
+        df2 <- df()
+        df2 <- df2 %>%
+          mutate(group_dup = group) %>%
+          dplyr::group_by(group_dup) %>%
+          dplyr::group_map(function(x, y){
+              x %>% add_row(., .[1, ])
+            }) %>%
           do.call(rbind, .)
-        df(closed)
 
-        pol.x    <- dplyr::filter(closed, group == input$name_polygon) %>% .$x
-        pol.y    <- dplyr::filter(closed, group == input$name_polygon) %>% .$y
+
+        #ADDS POLYGON
+        p(p() +
+            geom_polygon(data = df(),
+                         aes(x, y, fill = group),
+                         alpha = .2) +
+            geom_path(data = df2, aes(x, y, color = group), show.legend = FALSE)
+        )
+
+        ##ANNOTATES RAW DF
+        pol.x <- subset(df(), group == input$name_polygon) %>% .$x
+        pol.y <- subset(df(), group == input$name_polygon) %>% .$y
         is.gated <- sp::point.in.polygon(point.x, point.y, pol.x, pol.y)
-        raw(raw() %>% dplyr::mutate(!!input$name_polygon := is.gated))
+        #
+        raw(
+          raw() %>%
+            mutate(!! input$name_polygon := is.gated)
+
+        )
       })
 
-      output$df_coordinate <- renderTable({ df() })
+      #RENDERS GATE COORDINATES AS TABLE
+      output$df_coordinate <- renderTable({df()})
 
+      #WRITE COORDINATES OF GATES TO GLOBAL ENV
       observeEvent(input$save_coord_to_global, {
         assign(write_gate_to, df(), envir = .GlobalEnv)
-      })
+        })
+
+      #WRITE ANNOTATED RAW DATA.FRAME TO GLOBAL ENV
       observeEvent(input$save_annotated.raw_to_global, {
         assign(write_data_to, raw(), envir = .GlobalEnv)
-      })
+        })
     }
   )
 }
